@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     // close stdout
     close(1);
 
-    int fd = open("something.txt", O_CREAT | O_WRONLY, S_IRWXU);
+    int fd = open(fname, O_CREAT | O_WRONLY, S_IRWXU);
 
     if (fd == -1) {
         return errno;
