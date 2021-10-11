@@ -4,7 +4,19 @@
 
 namespace {
 
-using ThreadFuncType = void* (*) (void*);
+// a wrapper function that all threads should call
+// the argument arg holds both the callback function and its argument (std::string)
+void* callback_wrapper(void* arg)
+{
+    message_queue::arg_wrapper* wrp = static_cast<message_queue::arg_wrapper*>(arg);
+
+    auto callback = wrp->callback;
+    auto msg = wrp->msg;
+
+    callback(msg);
+
+    return nullptr;
+}
 
 } // unnamed
 
@@ -16,7 +28,7 @@ message_queue::message_queue()
     // start the scheduler thread
 
     int res = pthread_create(&m_scheduler_thread, nullptr,
-                             (ThreadFuncType) &message_queue::start, this);
+                             (message_queue::ThreadFuncType) &message_queue::start, this);
     utils::exit_on_error(res, "Cannot create thread.");
 
     res = pthread_detach(m_scheduler_thread);
@@ -64,7 +76,10 @@ void* message_queue::start(void*)
         for (auto callback : m_handlers) {
             pthread_t thread;
 
-            int res = pthread_create(&thread, nullptr, (ThreadFuncType)callback, (void*)(&msg));
+            arg_wrapper* args = new arg_wrapper(msg, callback);
+            m_arg_wrappers.push_back(args);
+
+            int res = pthread_create(&thread, nullptr, callback_wrapper, (void*)(args));
             utils::exit_on_error(res, "Cannot create thread.");
 
             res = pthread_detach(thread);
@@ -74,5 +89,13 @@ void* message_queue::start(void*)
 
         res = pthread_mutex_unlock(&m_cv_mutex);
         utils::exit_on_error(res, "Cannot unlock mutex.");
+    }
+}
+
+message_queue::~message_queue()
+{
+    for (auto item : m_arg_wrappers) {
+        delete item;
+        item = nullptr;
     }
 }
