@@ -5,6 +5,7 @@
 #include "listener.h"
 #include "utils.h"
 #include "shared_object.h"
+#include "semaphore_wrapper.h"
 
 listener::listener()
 {
@@ -21,7 +22,9 @@ listener::listener()
     }
 
     // register in shared object
+    semaphore_wrp::get_instance().wait();
     shared_object::get_instance().register_callback(getpid());
+    semaphore_wrp::get_instance().post();
 }
 
 void listener::start()
@@ -41,6 +44,7 @@ void* listener::listen(void *)
         int fd = open(m_fifo_name.c_str(), O_RDONLY);
         utils::exit_on_error(fd, "Cannot open fifo.", -1);
 
+        // check for update/notification
         int res = read(fd, msg, sizeof(msg));
         utils::exit_on_error(res, "Cannot read from fifo.", -1);
 
@@ -61,5 +65,7 @@ listener::~listener()
     res = unlink(m_fifo_name.c_str());
     utils::exit_on_error(res, "Cannot unlink fifo.", -1);
 
+    semaphore_wrp::get_instance().wait();
     shared_object::get_instance().unregister_callback(getpid());
+    semaphore_wrp::get_instance().post();
 }

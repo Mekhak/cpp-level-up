@@ -15,12 +15,12 @@ shared_object::shared_object()
     }
 }
 
-shared_object::~shared_object()
-{
-}
-
 shared_object& shared_object::get_instance()
 {
+    // sigleton
+    // C++ 11 style siglenton was not used since the shared object must be constructed in a specific memory
+    // not in static memory
+
     if (s_instance == nullptr) {
         int id = shmget(s_id, sizeof (shared_object), IPC_CREAT | 0666);
         utils::exit_on_error(id, "Cannot get a shared memory.", -1);
@@ -28,7 +28,9 @@ shared_object& shared_object::get_instance()
         void* raw_mem = shmat(id, nullptr, 0);
         s_instance = static_cast<shared_object*>(raw_mem);
 
-        // construct object on allocated memory
+        // emplace-construct the shared object in raw memory
+        // check whether the object was constructed before
+        // TODO: not a great solution. Revisit.
         if (s_instance->m_constructed != true) {
             new (s_instance) shared_object;
         }
@@ -70,6 +72,9 @@ void shared_object::set_message(const char *msg)
 
         std::string fifo_name = "/tmp/" + std::to_string(m_fifo_names[i]);
 
+        // Try to open fifo in unblocking mode.
+        // Success means that fifo is opened in the other side.
+        // Falure indicates that the process which created the fifo is died.
         int fd = open(fifo_name.c_str(), O_WRONLY | O_NONBLOCK);
 
         if (fd == -1 && (errno == ENOENT || errno == ENXIO)) {
