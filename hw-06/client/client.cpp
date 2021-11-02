@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 #include "utils.h"
 
-const size_t client::s_port = 63100;
+const size_t client::s_port = 63103;
 const char* client::s_ip = "127.0.0.1";
 
 client::client()
@@ -29,6 +29,8 @@ client::client()
 
 void client::start() noexcept
 {
+    std::cout << "Type a message ...\n" << std::endl;
+
     int res = pthread_create(&m_listener, nullptr,
                              (client::ThreadFuncType) &client::listen, this);
     utils::exit_on_error(res, "Cannot create thread.");
@@ -37,10 +39,12 @@ void client::start() noexcept
     utils::exit_on_error(res, "Cannot detach thread.");
 
     while (true) {
-        std::string msg;
-        std::cin >> msg;
+        utils::safe_print("S:", false);
 
-        int res = write(m_socket, msg.c_str(), msg.size());
+        std::string msg;
+        std::getline(std::cin, msg);
+
+        int res = write(m_socket, msg.c_str(), 256);
         utils::exit_on_error(res, "Cannot write to socket.", -1);
     }
 }
@@ -53,6 +57,9 @@ void* client::listen(void *)
         int res = read(m_socket, buf, 256);
         utils::exit_on_error(res, "Cannot read from socket.", -1);
 
-        std::cout << buf << std::endl;
+        utils::safe_print("\nR: ", false);
+        utils::safe_print(buf);
+
+        utils::safe_print("S:", false);
     }
 }

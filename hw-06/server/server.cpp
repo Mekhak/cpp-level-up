@@ -28,7 +28,7 @@ void* listen_to_client(void* args)
 
 } // unnamed
 
-const size_t server::s_port = 63100;
+const size_t server::s_port = 63103;
 const char* server::s_ip = "127.0.0.1";
 const size_t server::s_max_num_of_clients = 10;
 
@@ -55,6 +55,8 @@ void server::start() noexcept
 
     res = listen(server, server::s_max_num_of_clients);
     utils::exit_on_error(res, "Cannot listen to socket.");
+
+    std::cout << "Server started." << std::endl;
 
     while (true) {
         socklen_t addr_len = 0;

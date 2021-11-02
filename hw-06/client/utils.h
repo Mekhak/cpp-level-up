@@ -28,12 +28,18 @@ inline void exit_on_error(int err, const char* msg,
 }
 
 template <typename T>
-void safe_print(const T& msg)
+void safe_print(const T& msg, bool newline = true)
 {
     int res = pthread_mutex_lock(&print_mutex);
     exit_on_error(res, "Cannot lock mutex.");
 
-    std::cout << msg << std::endl;
+    std::cout << msg;
+
+    if (newline) {
+        std::cout << std::endl;
+    } else {
+        std::cout << std::flush;
+    }
 
     pthread_mutex_unlock(&print_mutex);
     exit_on_error(res, "Cannot unlock mutex.");
